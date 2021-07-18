@@ -17,7 +17,6 @@ class Analyzer:
 		if atype == "re":
 			wanted_gain = int(kwargs.pop("wanted_gain"))
 			period_days = int(kwargs.pop("period_days"))
-			print("wanted gain:", wanted_gain)
 			self.an = RisingEdgeAnalyzer(data, wanted_gain, period_days)
 		else:
 			loger.error("Not a reconized analyzer type")
@@ -43,6 +42,22 @@ class BaseAnalyzer(ABC):
 		self.data = data
 		self.verifyData()
 		self.result = None
+		self.avg_vol = None
+		self.avg_price = None
+		self.getAverages()
+
+	def getAverages(self):
+		total_vol = 0
+		total_p = 0
+		ctr = 0
+		for _, day in self.data.iterrows():
+			total_vol += day["Volume"]
+			total_p += (day["High"] + day["Low"]) / 2
+			ctr += 1
+		self.avg_vol = total_vol / ctr
+		logger.info(f"Average volume: {self.avg_vol}")
+		self.avg_price = total_p / ctr
+		logger.info(f"Average price: {self.avg_price}")
 
 	@abstractmethod
 	def analyze(self):

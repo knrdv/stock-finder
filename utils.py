@@ -21,3 +21,6 @@ def date_to_str(date):
 	"""Format datetime date to string"""
 	ret = date.strftime("%Y-%m-%d")
 	return ret
+
+def pprint(msg):
+	print(f"[+] {msg}")
