@@ -19,42 +19,8 @@ def load_tickers(filename):
 def pretty(ticker):
 	return json.dumps(ticker, indent=4)
 
-def get_current_date():
-	return datetime.date.today()
-
-def period_to_days(period) -> int:
-	logger.info(f"translating {period} to days")
-	label = period[-1]
-	num = int(period[:-1])
-	multiplier = 1
-
-	if label == "w":
-		multiplier = 7
-	elif label == "m":
-		multiplier = 30
-	elif label == "y":
-		multiplier = 365
-
-	days_num = num * multiplier
-	logger.info(f"{period} is {days_num} days")
-	return days_num
-
-def get_starting_date(period, multiple=1):
-	logger.info(f"finding starting date for period {period}")
-	curr = get_current_date()
-	days = period_to_days(period)
-	one_day = datetime.timedelta(days=1)
-	start_date = curr - multiple*days*one_day
-	logger.info(f"starting date is {start_date}")
-	return start_date
-
 def date_to_str(date):
 	ret = date.strftime("%Y-%m-%d")
-	return ret
-
-def download_ticker_data(ticker, start_date, end_date):
-	logger.info(f"fetching data for {ticker} starting {start_date} ending {end_date}")
-	ret = yf.download(ticker, start=start_date, end=end_date)
 	return ret
 
 def get_percent(gains):
