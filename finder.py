@@ -1,9 +1,14 @@
 #!/usr/bin/python3
+""" Stock finder.
+
+This program works in two ways:
+	1. find risk given requested gains, stock and time window
+	2. find stocks given requested gains, time window and risk tolerance
+"""
 import logging
 import config
 import argparse
 import utils
-#import pandas as pd
 from collector import Collector
 from daterange import DateRange
 from analyzer import Analyzer
@@ -13,9 +18,6 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 def main(args):
-	#pd.set_option("display.max_columns", None)
-	#pd.set_option("display.max_rows", None)
-
 	print(f"Starting stock analysis using gains={args.gains}%, period={args.period}, multiple={args.multiple}")
 
 	# Using desired period, find new sample period

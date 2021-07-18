@@ -5,8 +5,17 @@ from abc import ABC, abstractmethod
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-
 class Collector:
+	""" Collector wrapper class
+	
+	Collects data from a certain source.
+
+	Attributes:
+		ctype: collector type
+		start_date: start date
+		end_date: end date
+		col: collector instance
+	"""
 	def __init__(self, ctype, start_date, end_date):
 		if ctype == "yahoo":
 			self.col = YahooCollector(start_date, end_date)
@@ -16,20 +25,32 @@ class Collector:
 			raise ValueError("Unvalid collector type")
 
 	def getData(self, ticker):
+		"""Returns OHLC candle data for a given ticker"""
 		return self.col.getCandleData(ticker)
 
 
 class BaseCollector(ABC):
+	"""Collector base class for inheritance
+
+	Attributes:
+		start_date: start date
+		end_date: end date
+	"""
 	def __init__(self, start_date, end_date):
 		self.start_date = start_date
 		self.end_date = end_date
 
 	@abstractmethod
 	def getCandleData(self, ticker):
+		"""Get candle data in given period for a given ticker"""
 		pass
 
 
 class YahooCollector(BaseCollector):
+	"""Yahoo collector
+
+	Collect candlestick data using yahoo finance API
+	"""
 	def __init__(self, start_date, end_date):
 		super().__init__(start_date, end_date)
 
