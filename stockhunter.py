@@ -9,6 +9,7 @@ import logging
 import config
 import argparse
 import utils
+import time
 from collector import Collector
 from daterange import DateRange
 from analyzer import Analyzer
@@ -33,13 +34,14 @@ def main(args):
 	if args.operation == "lookup":
 		# Lookup filter
 		lookup_filter = {
-			"dividend":False,
-			"volume":{
-				"gt":3000000
-			}
+			"dividend":False
 		}
 
+	with open(config.CANDIDATES_FILE, "w") as f:
+		pass
+		
 	# For each stock do:
+	candidates = []
 	for ticker in tickers:
 		print()
 		print(f"[ {ticker} analysis from {start_date} to {end_date}, gains={args.gains}%, period={args.period} ]")
@@ -54,12 +56,21 @@ def main(args):
 			utils.pprint("Filter passed")
 
 		# Get candle OHLC data
+		time.sleep(config.SLEEP)
 		utils.pprint("Collecting data...")
-		df = col.getData(ticker)
+		try:
+			df = col.getData(ticker)
+		except:
+			print(f"Skipping {ticker}")
+			continue
 
 		# Analyze using RisingEdge analyzer
 		utils.pprint(f"Starting data analysis for {ticker}...")
-		an = Analyzer(args.analyzer, df, wanted_gain=args.gains, period_days=days)
+		try:
+			an = Analyzer(args.analyzer, df, wanted_gain=args.gains, period_days=days)
+		except:
+			print(f"Skipping {ticker} analysis")
+			continue
 		an.analyze()
 		results = an.getResult()
 		utils.pprint(f"Analysis results:\n{results}")
@@ -70,6 +81,10 @@ def main(args):
 		risk = rc.getRisk()
 		utils.pprint(f"Risk: {round(risk, 2)}%")
 
+		if risk <= args.risk_appetite:
+			candidates.append(ticker)
+			utils.write_candidate(ticker)
+
 if __name__ == "__main__":
 	logging.basicConfig(format=config.LOG_FORMAT, filename=config.LOG_FILE)
 	parser = argparse.ArgumentParser()
@@ -77,6 +92,7 @@ if __name__ == "__main__":
 	parser.add_argument("-t", "--tickers", type=str, help="file containing tickers", required=True)
 	parser.add_argument("-a", "--analyzer", type=str, help="analyzer used", choices=["re"], required=True)
 	parser.add_argument("-g", "--gains", type=int, help="\% gains", required=True)
+	parser.add_argument("-r", "--risk-appetite", type=int, help="\% risk appetite", default=50)
 	parser.add_argument("-p", "--period", type=str, help="max waiting period, e.g. 3w, 20d, 2m, 3y", required=True)
 	parser.add_argument("-m", "--multiple", type=int, help="period multiple for sampling", required=True)
 	args = parser.parse_args()

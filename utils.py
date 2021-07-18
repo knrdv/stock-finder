@@ -1,6 +1,7 @@
 import json
 import logging
 import datetime
+import config
 import yfinance as yf
 import pandas as pd
 import functools
@@ -24,3 +25,7 @@ def date_to_str(date):
 
 def pprint(msg):
 	print(f"[+] {msg}")
+
+def write_candidate(ticker, filename=config.CANDIDATES_FILE):
+	with open(filename, "a") as f:
+		f.write(ticker + "\n")

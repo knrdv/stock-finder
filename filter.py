@@ -30,32 +30,57 @@ class Filter():
 	def lte(self, s, val):
 		return s <= val
 
-	def dividend(self, exists):
+	def primitiveFilter(self, tested_val, j_fil):
+		"""Test through primitive filters"""
+		passed = True
+		for key, val in j_fil.items():
+			result = getattr(self, key)(tested_val, val)
+			passed = passed and result
+			if not passed:
+				logger.info(f"Primitive check {key} failed")
+				return False
+		logger.info(f"Primitive check {key} passed")
+		return passed
+
+	def dividend(self, wanted_div):
 		"""Dividend check"""
-		div = self.ticker.info["dividendRate"]
+		try:
+			div = self.ticker.info["dividendRate"]
+		except:
+			div = None
+		print(div)
 		if not div:
-			empty = True
+			has_div = False
 		else:
-			empty = (len(div) == 0)
-		divcheck = (empty != exists)
+			has_div = True
+		divcheck = not (has_div ^ wanted_div)
 		if divcheck:
 			logger.info("Dividend check passed")
 		else:
 			logger.info("Dividend check failed")
-		return empty != exists
+		return divcheck
 
 	def volume(self, j_fil):
 		"""Volume check loop"""
 		vol = self.ticker.info["volume"]
-		passed = True
-		for key, val in j_fil.items():
-			result = getattr(self, key)(vol, val)
-			passed = passed and result
-			if not passed:
-				logger.info("Volume check failed")
-				return False
-		logger.info("Volume check passed")
-		return passed
+		logger.info(f"Volume: {vol}")
+		ret = self.primitiveFilter(vol, j_fil)
+		if ret:
+			logger.info("Volume check passed")
+		else:
+			logger.info("Volume check failed")
+		return ret
+
+	def marketcap(self, j_fil):
+		"""Volume check loop"""
+		mcap = self.ticker.info["marketCap"]
+		logger.info(f"Market cap: {mcap}")
+		ret = self.primitiveFilter(mcap, j_fil)
+		if ret:
+			logger.info("Market cap check passed")
+		else:
+			logger.info("Market cap check failed")
+		return ret
 
 	def check(self, j_fil):
 		"""Main check loop"""

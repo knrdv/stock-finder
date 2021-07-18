@@ -44,9 +44,9 @@ class BaseAnalyzer(ABC):
 		self.result = None
 		self.avg_vol = None
 		self.avg_price = None
-		self.getAverages()
+		self.calculateAverages()
 
-	def getAverages(self):
+	def calculateAverages(self):
 		total_vol = 0
 		total_p = 0
 		ctr = 0
