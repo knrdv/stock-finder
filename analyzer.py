@@ -44,6 +44,8 @@ class BaseAnalyzer(ABC):
 		self.result = None
 		self.avg_vol = None
 		self.avg_price = None
+		self.rolling_avg_price = []
+		self.rolling_avg_vol = []
 		self.calculateAverages()
 
 	def calculateAverages(self):
@@ -54,10 +56,13 @@ class BaseAnalyzer(ABC):
 			total_vol += day["Volume"]
 			total_p += (day["High"] + day["Low"]) / 2
 			ctr += 1
+			self.rolling_avg_price.append(total_p / ctr)
+			self.rolling_avg_vol.append(total_vol / ctr)
 		self.avg_vol = total_vol / ctr
 		logger.info(f"Average volume: {self.avg_vol}")
 		self.avg_price = total_p / ctr
 		logger.info(f"Average price: {self.avg_price}")
+
 
 	@abstractmethod
 	def analyze(self):
@@ -136,7 +141,6 @@ class RisingEdgeAnalyzer(BaseAnalyzer):
 	def countGains(self, gains:tuple, intraday:tuple=None):
 		"""Calculate gains possibility for each entry point"""
 		tmp_gains = [0 for _ in range(len(gains))]
-		#gains_counter = list(intraday)
 		gains_counter = [0 for _ in range(len(gains))]
 		for i in range(len(gains)):
 			# Which gains to update
