@@ -99,13 +99,29 @@ class RisingEdgeAnalyzer(BaseAnalyzer):
 		else:
 			logger.info("RisingEdge analysis data type verified")
 
-	def getGains(self):
+	def getGains(self) -> tuple:
 		"""Return % gains for each candlestick in provided data"""
 		total_gains = []
 		for _,day in self.data.iterrows():
 			gains = day["Close"] / day["Open"]
 			gains = self.getPercent(gains)
 			total_gains.append(gains)
+		logger.info(f"Gains:")
+		logger.info(total_gains)
+		return tuple(total_gains)
+
+	def getIntTreshGain(self):
+		"""Returns total occurrencies where treshold gains happened intra-day"""
+		total_gains = []
+		for _, day in self.data.iterrows():
+			intraday_gain = day["High"] / day["Low"]
+			intraday_gain = self.getPercent(intraday_gain)
+			if intraday_gain >= self.wanted_gain:
+				total_gains.append(int(intraday_gain // self.wanted_gain))
+			else:
+				total_gains.append(0)
+		logger.info(f"Intraday gains:")
+		logger.info(total_gains)
 		return tuple(total_gains)
 
 	def getPercent(self, gains):
@@ -115,10 +131,10 @@ class RisingEdgeAnalyzer(BaseAnalyzer):
 		else:
 			return -1 * (1 - gains) * 100
 
-	def countGains(self, gains):
+	def countGains(self, gains:tuple, intraday:tuple):
 		"""Calculate gains possibility for each entry point"""
 		tmp_gains = [0 for _ in range(len(gains))]
-		gains_counter = [0 for _ in range(len(gains))]
+		gains_counter = list(intraday)
 		for i in range(len(gains)):
 			# Which gains to update
 			start_idx = max(0, (i - self.period_days + 1))
@@ -133,7 +149,8 @@ class RisingEdgeAnalyzer(BaseAnalyzer):
 	def analyze(self):
 		"""Main function"""
 		gains_list = self.getGains()
-		self.result = self.countGains(gains_list)
+		intraday = self.getIntTreshGain()
+		self.result = self.countGains(gains_list, intraday)
 
 	def getResult(self):
 		"""Return analysis results"""
