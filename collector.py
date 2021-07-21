@@ -1,6 +1,6 @@
 import yfinance as yf
 import logging
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractstaticmethod
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -40,6 +40,14 @@ class BaseCollector(ABC):
 		self.start_date = start_date
 		self.end_date = end_date
 
+	@abstractstaticmethod
+	def getPrice(ticker):
+		pass
+
+	@abstractstaticmethod
+	def getVolume(ticker):
+		pass
+
 	@abstractmethod
 	def getCandleData(self, ticker):
 		"""Get candle data in given period for a given ticker"""
@@ -58,3 +66,15 @@ class YahooCollector(BaseCollector):
 		logger.info(f"fetching data for {ticker} starting {self.start_date} ending {self.end_date}")
 		data = yf.download(ticker, start=self.start_date, end=self.end_date)
 		return data
+
+	@staticmethod
+	def getPrice(ticker) -> int:
+		data = yf.Ticker(ticker)
+		price = int(data.info["currentPrice"])
+		return price
+
+	@staticmethod
+	def getVolume(ticker) -> int:
+		data = yf.Ticker(ticker)
+		vol = int(data.info["volume"])
+		return vol

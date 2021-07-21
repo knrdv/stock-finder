@@ -20,8 +20,6 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 def main(args):
-	print(f"Starting stock analysis using gains={args.gains}%, period={args.period}, multiple={args.multiple}")
-
 	# Using desired period, find new sample period
 	start_date, end_date = DateRange(args.period, args.multiple).getRange()
 	days = DateRange.periodToDays(args.period)
@@ -69,14 +67,23 @@ def main(args):
 		try:
 			an = Analyzer(args.analyzer, df, wanted_gain=args.gains, period_days=days)
 		except:
-			print(f"Skipping {ticker} analysis")
+			utils.pprint(f"Skipping {ticker} analysis")
 			continue
 		an.analyze()
-		results = an.getResult()
-		utils.pprint(f"Analysis results:\n{results}")
+		rising_edge_results = an.getResult()
+
+		# Get averages
+		an = Analyzer("avg", df)
+		an.analyze()
+		averages = an.getResult()
+
+		# Analyze rolling price to rolling average ratios
+		an = Analyzer("rpa", df, averages=averages["rolling_avg_price"])
+		an.analyze()
+		price_avg_ratios = an.getResult()
 
 		utils.pprint("Calculating risk...")
-		rc = RiskCalculator(args.analyzer, results)
+		rc = RiskCalculator(args.analyzer, rising_edge_results)
 		rc.calculateRisk()
 		risk = rc.getRisk()
 		utils.pprint(f"Risk: {round(risk, 2)}%")
@@ -84,6 +91,19 @@ def main(args):
 		if risk <= args.risk_appetite:
 			candidates.append(ticker)
 			utils.write_candidate(ticker)
+
+		# Calculate entry risk
+		utils.pprint("Calculating entry risk...")
+		input_data = {
+			"ticker":ticker,
+			"avg_price":averages["avg_price"],
+			"rising_edge_data":rising_edge_results,
+			"price_avg_ratios":price_avg_ratios
+		}
+		rc = RiskCalculator("per", input_data)
+		rc.calculateRisk()
+		risk = rc.getRisk()
+		utils.pprint(f"Price entry risk: {round(risk, 2)}%")
 
 if __name__ == "__main__":
 	logging.basicConfig(format=config.LOG_FORMAT, filename=config.LOG_FILE)

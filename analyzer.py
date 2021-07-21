@@ -18,6 +18,11 @@ class Analyzer:
 			wanted_gain = int(kwargs.pop("wanted_gain"))
 			period_days = int(kwargs.pop("period_days"))
 			self.an = RisingEdgeAnalyzer(data, wanted_gain, period_days)
+		elif atype == "avg":
+			self.an = AverageAnalyzer(data)
+		elif atype == "rpa":
+			averages = kwargs.pop("averages")
+			self.an = RollingPriceAnalyzer(data, averages)
 		else:
 			loger.error("Not a reconized analyzer type")
 			raise ValueError("Wrong analyzer name")
@@ -42,13 +47,43 @@ class BaseAnalyzer(ABC):
 		self.data = data
 		self.verifyData()
 		self.result = None
+
+	@abstractmethod
+	def analyze(self):
+		"""Analyze data"""
+		pass
+
+	def getResult(self):
+		"""Get analysis results"""
+		if not self.result:
+			logger.error("No results found")
+			raise ValueError("No results found")
+		return self.result
+
+	@abstractmethod
+	def verifyData(self):
+		"""Verify required data type"""
+		pass
+
+class AverageAnalyzer(BaseAnalyzer):
+	"""Average analyzer class
+	
+	Attributes:
+		data: data for analysis
+		avg_vol: average volume
+		avg_price: average price
+		rolling_avg_price: rolling price average
+		rolling_avg_vol: rolling volume average
+	"""
+	def __init__(self, data):
+		super().__init__(data)
 		self.avg_vol = None
 		self.avg_price = None
 		self.rolling_avg_price = []
 		self.rolling_avg_vol = []
-		self.calculateAverages()
 
 	def calculateAverages(self):
+		"""Calculate averages"""
 		total_vol = 0
 		total_p = 0
 		ctr = 0
@@ -63,21 +98,25 @@ class BaseAnalyzer(ABC):
 		self.avg_price = total_p / ctr
 		logger.info(f"Average price: {self.avg_price}")
 
-
-	@abstractmethod
 	def analyze(self):
 		"""Analyze data"""
-		pass
+		self.calculateAverages()
+		self.result = {
+			"avg_vol":self.avg_vol,
+			"avg_price":self.avg_price,
+			"rolling_avg_vol":tuple(self.rolling_avg_vol),
+			"rolling_avg_price":tuple(self.rolling_avg_price)
+		}
 
-	@abstractmethod
-	def getResult(self):
-		"""Get analysis results"""
-		pass
-
-	@abstractmethod
 	def verifyData(self):
-		"""Verify required data type"""
-		pass
+		"""Data type check for pandas DataFrame data"""
+		datatype = type(self.data)
+		if datatype is not pandas.core.frame.DataFrame:
+			logger.error(f"Wrong analysis data type {datatype}")
+			raise ValueError(f"Wrong analysis data type {datatype}")
+		else:
+			logger.info("RisingEdge analysis data type verified")
+
 
 class RisingEdgeAnalyzer(BaseAnalyzer):
 	""" Rising edge analyzer
@@ -160,9 +199,35 @@ class RisingEdgeAnalyzer(BaseAnalyzer):
 		intraday = self.getIntTreshGain()
 		self.result = tuple([x + y for x,y in zip(counted_gains, intraday)])
 
-	def getResult(self):
-		"""Return analysis results"""
-		if not self.result:
-			logger.error("No results found")
-			raise ValueError("No results found")
-		return self.result
+
+class RollingPriceAnalyzer(BaseAnalyzer):
+	"""Rolling price analyzer
+
+	Returns tuple of open_price@date/ravg_price@date
+	
+	Attributes:
+		data: data for analysis
+		rolling_price_avgs: rolling price averages
+	"""
+	def __init__(self, data, rolling_price_avgs:tuple):
+		super().__init__(data)
+		self.averages = rolling_price_avgs
+		tavg = type(self.averages)
+		if tavg is not tuple:
+			logger.error(f"Wrong analysis rolling_price_avgs type {tavg}")
+			raise ValueError(f"Wrong analysis rolling_price_avgs type {tavg}")
+
+	def analyze(self):
+		"""Analyze data"""
+		open_prices = tuple(self.data["Open"].tolist())
+		tmp = [x/y for x,y in zip(open_prices, self.averages)]
+		self.result = tuple(tmp)
+
+	def verifyData(self):
+		"""Data type check for pandas DataFrame data"""
+		datatype = type(self.data)
+		if datatype is not pandas.core.frame.DataFrame:
+			logger.error(f"Wrong analysis data type {datatype}")
+			raise ValueError(f"Wrong analysis data type {datatype}")
+		else:
+			logger.info("RollingPriceAnalyzer analysis data type verified")
